@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>QuoteCraft | Estimate Generator</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script> 
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              green: '#509f2e',
+              dark: '#374151',
+              light: '#f9fafb',
+            }
+          },
+          fontFamily: {
+            sans: ['Montserrat', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: #f1f1f1; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #509f2e; }
+
+  input:focus, select:focus, textarea:focus {
+    box-shadow: 0 0 0 2px rgba(80, 159, 46, 0.2);
+  }
+
+  /* ==========================================
+     BULLETPROOF A4 PRINT & PAGINATION STYLES 
+     ========================================== */
+  
+  .a4-preview-container {
+    width: 100%;
+    max-width: 210mm;
+    margin: 2rem auto;
+    background: white;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+    padding: 15mm; 
+    border-radius: 8px;
+  }
+
+  /* Main Products Table */
+  table.invoice-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    table-layout: fixed;
+  }
+
+  table.invoice-table th {
+    background-color: #509f2e !important;
+    color: white !important;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 10px 5px;
+    border: 1px solid #509f2e;
+    -webkit-print-color-adjust: exact;
+  }
+
+  table.invoice-table td {
+    font-size: 11px;
+    padding: 8px 5px;
+    border: 1px solid #e5e7eb;
+    color: #374151;
+    word-wrap: break-word;
+  }
+
+  /* Strict Column Widths to prevent squishing */
+  table.invoice-table th:nth-child(1), table.invoice-table td:nth-child(1) { width: 4%; text-align: center; } 
+  table.invoice-table th:nth-child(2), table.invoice-table td:nth-child(2) { width: 22%; text-align: left; font-weight: 600; color: #111827;} 
+  table.invoice-table th:nth-child(3), table.invoice-table td:nth-child(3) { width: 5%; text-align: center; } 
+  table.invoice-table th:nth-child(4), table.invoice-table td:nth-child(4) { width: 9%; text-align: right; } 
+  table.invoice-table th:nth-child(5), table.invoice-table td:nth-child(5) { width: 9%; text-align: right; } 
+  table.invoice-table th:nth-child(6), table.invoice-table td:nth-child(6) { width: 5%; text-align: center; } 
+  table.invoice-table th:nth-child(7), table.invoice-table td:nth-child(7) { width: 10%; text-align: right; } 
+  table.invoice-table th:nth-child(8), table.invoice-table td:nth-child(8) { width: 12%; text-align: right; } 
+  table.invoice-table th:nth-child(9), table.invoice-table td:nth-child(9) { width: 12%; text-align: right; color: #ef4444;} 
+  table.invoice-table th:nth-child(10), table.invoice-table td:nth-child(10) { width: 12%; text-align: right; font-weight: bold; color: #111827;} 
+
+  /* Prevent Breaks Inside Important Sections */
+  .no-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* -------------------------------------------
+     STRICT @MEDIA PRINT RULES
+     ------------------------------------------- */
+  @media print {
+    html, body {
+      background: white !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+    
+    @page { 
+      size: A4 portrait; 
+      margin: 12mm 15mm; /* Perfect Margins */
+    }
+    
+    #input-section, .no-print { display: none !important; }
+    #print-section { display: block !important; margin: 0; padding: 0; }
+    
+    .a4-preview-container {
+      max-width: 100%;
+      box-shadow: none;
+      padding: 0;
+      margin: 0;
+      border-radius: 0;
+    }
+    
+    * {
+      -webkit-print-color-adjust: exact !important; 
+      print-color-adjust: exact !important;
+    }
+
+    /* Auto Repeat Table Header on new pages */
+    table.invoice-table { page-break-inside: auto; }
+    table.invoice-table thead { display: table-header-group !important; }
+    table.invoice-table tr { page-break-inside: avoid !important; page-break-after: auto; }
+  }
+  </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 min-h-screen">
+  
+  <div id="input-section" class="max-w-7xl mx-auto p-4 md:p-8">
+    
+    <div class="flex items-center justify-between mb-8 bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+      <div>
+        <h1 class="text-3xl font-extrabold tracking-tight">
+          <span class="text-brand-dark">Quote</span><span class="text-brand-green">Craft</span>
+        </h1>
+        <p class="text-sm font-bold text-gray-500 mt-1 uppercase tracking-wider">Har Hisab, Bilkul Sahi</p>
+      </div>
+    </div>
+
+    <div class="space-y-6">
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <h5 class="font-bold text-lg text-brand-dark mb-4 border-b border-gray-100 pb-2">Client / Vendor Details</h5>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <input type="text" id="vendorName" placeholder="Business Name" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-brand-green focus:bg-white transition-colors">
+          <input type="text" id="vendorAddress" placeholder="Full Address" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-brand-green focus:bg-white transition-colors">
+          <input type="text" id="vendorGST" placeholder="GSTIN Number" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2.5 outline-none focus:border-brand-green focus:bg-white uppercase transition-colors">
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <h5 class="font-bold text-lg text-brand-dark mb-4 border-b border-gray-100 pb-2">Estimate Information</h5>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div><label class="text-xs font-semibold text-gray-500 mb-1 block">Quote / Order No.</label><input type="text" id="orderNo" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-green focus:bg-white"></div>
+          <div><label class="text-xs font-semibold text-gray-500 mb-1 block">Date</label><input type="date" id="orderDate" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-green focus:bg-white text-gray-600"></div>
+          <div><label class="text-xs font-semibold text-gray-500 mb-1 block">Place of Supply</label><input type="text" id="supplyPlace" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-green focus:bg-white"></div>
+          <div><label class="text-xs font-semibold text-gray-500 mb-1 block">Valid Until / Due Date</label><input type="date" id="dueDate" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-green focus:bg-white text-gray-600"></div>
+        </div>
+      </div>
+
+      <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+        <div class="flex justify-between items-center mb-4 border-b border-gray-100 pb-2">
+          <h5 class="font-bold text-lg text-brand-dark">Item Details</h5>
+          <button onclick="addProductRow()" class="bg-brand-light text-brand-dark hover:text-brand-green border border-gray-200 px-4 py-2 rounded-lg text-sm font-semibold transition-colors">+ Add Item</button>
+        </div>
+
+        <div id="productRows" class="space-y-3">
+          <div class="product-row flex flex-wrap gap-3 items-start bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <select class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-1/4 outline-none focus:border-brand-green text-sm font-medium" onchange="updateProductDetails(this); handleOtherOption(this);">
+              <option value="" selected disabled>Select Product Model</option>
+              <optgroup label="QUARTZ">
+                <option value="QUARTZ 16X18">QUARTZ 16X18</option>
+                <option value="QUARTZ 21X18">QUARTZ 21X18</option>
+                <option value="QUARTZ 24X18">QUARTZ 24X18</option>
+                <option value="QUARTZ 36X18">QUARTZ 36X18</option>
+                <option value="QUARTZ 28X19">QUARTZ 28X19</option>
+                <option value="QUARTZ 45X20">QUARTZ 45X20</option>
+                <option value="QUARTZ 30X20 MULTIFUNCTION">QUARTZ 30X20 MULTIFUNCTION</option>
+                <option value="QUARTZ 31X19">QUARTZ 31X19</option>
+                <option value="QUARTZ 37X18">QUARTZ 37X18</option>
+                <option value="QUARTZ 31X18 DOUBLE BOWL">QUARTZ 31X18 DOUBLE BOWL</option>
+                <option value="Other">Other</option>
+              </optgroup>
+              <optgroup label="HANDMADE">
+                <option value="HANDMADE 16X18">HANDMADE 16X18</option>
+                <option value="HANDMADE 21X18">HANDMADE 21X18</option>
+                <option value="HANDMADE 24X18">HANDMADE 24X18</option>
+                <option value="HANDMADE 32X18">HANDMADE 32X18</option>
+                <option value="HANDMADE 37X18">HANDMADE 37X18</option>
+                <option value="HANDMADE 30X18">HANDMADE 30X18</option>
+                <option value="HANDMADE 16X18 COLOR">HANDMADE 16X18 COLOR</option>
+                <option value="HANDMADE 21X18 COLOR">HANDMADE 21X18 COLOR</option>
+                <option value="HANDMADE 24X18 COLOR">HANDMADE 24X18 COLOR</option>
+                <option value="HANDMADE 16X18 RC MATT">HANDMADE 16X18 RC MATT</option>
+                <option value="HANDMADE 21X18 RC MATT">HANDMADE 21X18 RC MATT</option>
+                <option value="HANDMADE 24X18 RC MATT">HANDMADE 24X18 RC MATT</option>
+                <option value="HANDMADE 20X17 RC MATT">HANDMADE 20X17 RC MATT</option>
+                <option value="HANDMADE 22X18">HANDMADE 22X18</option>
+                <option value="HANDMADE 24X18 TAP HOLE BLACK">HANDMADE 24X18 TAP HOLE BLACK</option>
+                <option value="HANDMADE 32X18 TAP HOLE">HANDMADE 32X18 TAP HOLE</option>
+                <option value="HANDMADE 37X18 COLOR">HANDMADE 37X18 COLOR</option>
+                <option value="HANDMADE 24X18 MINI MULTIFUNCTION">HANDMADE 24X18 MINI MULTIFUNCTION</option>
+                <option value="Other">Other</option>
+              </optgroup>
+              <optgroup label="MULTIFUNCTION">
+                <option value="MULTIFUNCTION SINK 30X18">MULTIFUNCTION SINK 30X18</option>
+                <option value="DIGITAL MULTIFUNCTION 30X18">DIGITAL MULTIFUNCTION 30X18</option>
+                <option value="QUARTZ MULTIFUNCTION">QUARTZ MULTIFUNCTION</option>
+                <option value="Other">Other</option>
+              </optgroup>
+              <optgroup label="STEEL SINK 0.5MM">
+                <option value="SS-12X12X6-0.5MM-WITH COATING-20PC/BOX">SS-12X12X6-0.5MM-WITH COATING-20PC/BOX</option>
+                <option value="SS-12X15X6-0.5MM-WITH COATING-10PC/BOX">SS-12X15X6-0.5MM-WITH COATING-10PC/BOX</option>
+                <option value="SS-14X16X6-0.5MM-WITH COATING-10PC/BOX">SS-14X16X6-0.5MM-WITH COATING-10PC/BOX</option>
+                <option value="SS-16X16X6-0.5MM-WITH COATING-10PC/BOX">SS-16X16X6-0.5MM-WITH COATING-10PC/BOX</option>
+                <option value="SS-12X12X6-0.5MM-WCWR-20PC/BOX">SS-12X12X6-0.5MM-WCWR-20PC/BOX</option>
+                <option value="SS-12X15X6-0.5MM-WCWR-10PC/BOX">SS-12X15X6-0.5MM-WCWR-10PC/BOX</option>
+                <option value="SS-14X16X6-0.5MM-WCWR-10PC/BOX">SS-14X16X6-0.5MM-WCWR-10PC/BOX</option>
+                <option value="SS-16X16X6-0.5MM-WCWR-10PC/BOX">SS-16X16X6-0.5MM-WCWR-10PC/BOX</option>
+              </optgroup>
+              <optgroup label="STEEL SINK 0.6MM">
+                <option value="SS-14X16X7-0.6MM-10PC/BOX">SS-14X16X7-0.6MM-10PC/BOX</option>
+                <option value="SS-16X18X6-0.6MM-10PC/BOX">SS-16X18X6-0.6MM-10PC/BOX</option>
+                <option value="SS-16X18X7-0.6MM-7PC/BOX">SS-16X18X7-0.6MM-7PC/BOX</option>
+                <option value="SS-16X16X7-0.6MM-7PC/BOX">SS-16X16X7-0.6MM-7PC/BOX</option>
+                <option value="SS-18X18X7-0.6MM-7PC/BOX">SS-18X18X7-0.6MM-7PC/BOX</option>
+                <option value="SS-20X17X7-0.6MM-7PC/BOX">SS-20X17X7-0.6MM-7PC/BOX</option>
+                <option value="SS-21X18X7-0.6MM-7PC/BOX">SS-21X18X7-0.6MM-7PC/BOX</option>
+                <option value="SS-22X18X7-0.6MM-7PC/BOX">SS-22X18X7-0.6MM-7PC/BOX</option>
+                <option value="SS-24X18X7-0.6MM-7PC/BOX">SS-24X18X7-0.6MM-7PC/BOX</option>
+                <option value="SS-16X18X8-0.6MM-5PC/BOX">SS-16X18X8-0.6MM-5PC/BOX</option>
+                <option value="SS-20X17X8-0.6MM-5PC/BOX">SS-20X17X8-0.6MM-5PC/BOX</option>
+                <option value="SS-21X18X8-0.6MM-5PC/BOX">SS-21X18X8-0.6MM-5PC/BOX</option>
+                <option value="SS-22X18X8-0.6MM-5PC/BOX">SS-22X18X8-0.6MM-5PC/BOX</option>
+                <option value="SS-24X18X8-0.6MM-5PC/BOX">SS-24X18X8-0.6MM-5PC/BOX</option>
+                <option value="SS-24X18X9-0.6MM-5PC/BOX">SS-24X18X9-0.6MM-5PC/BOX</option>
+              </optgroup>
+              <optgroup label="STEEL SINK 0.8MM">
+                <option value="SS-16X18X8-0.8MM-5PC/BOX">SS-16X18X8-0.8MM-5PC/BOX</option>
+                <option value="SS-20X17X8-0.8MM-5PC/BOX">SS-20X17X8-0.8MM-5PC/BOX</option>
+                <option value="SS-21X18X8-0.8MM-5PC/BOX">SS-21X18X8-0.8MM-5PC/BOX</option>
+                <option value="SS-22X18X8-0.8MM-5PC/BOX">SS-22X18X8-0.8MM-5PC/BOX</option>
+                <option value="SS-24X18X8-0.8MM-5PC/BOX">SS-24X18X8-0.8MM-5PC/BOX</option>
+                <option value="SS-24X18X9-0.8MM-5PC/BOX">SS-24X18X9-0.8MM-5PC/BOX</option>
+                <option value="SS-24X18X10-0.8MM-1PC/5PC MASTER">SS-24X18X10-0.8MM-1PC/5PC MASTER</option>
+              </optgroup>
+              <optgroup label="STEEL SINK 1.0MM">
+                <option value="SS-16X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-16X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+                <option value="SS-20X17X8-1.0MM-1PC/5PC MASTER CARTOON">SS-20X17X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+                <option value="SS-21X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-21X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+                <option value="SS-22X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-22X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+                <option value="SS-24X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-24X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+                <option value="SS-24X18X9-1.0MM-1PC/5PC MASTER CARTOON">SS-24X18X9-1.0MM-1PC/5PC MASTER CARTOON</option>
+              </optgroup>
+            </select>
+            <input type="number" placeholder="Qty" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-20 outline-none focus:border-brand-green text-sm">
+            <input type="number" placeholder="MRP" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-24 outline-none focus:border-brand-green text-sm">
+            <input type="number" placeholder="Bill Rate" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-24 outline-none focus:border-brand-green text-sm">
+            
+            <input type="number" placeholder="Wt/pc (KG)" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-24 outline-none focus:border-brand-green text-sm weight-input">
+
+            <select class="border border-gray-300 bg-white rounded-lg px-2 py-2 w-full md:w-28 outline-none focus:border-brand-green text-sm font-medium gst-mode">
+              <option value="included" selected>GST Incl.</option>
+              <option value="extra">GST Extra</option>
+            </select>
+
+            <input type="text" class="border border-brand-green bg-white rounded-lg px-3 py-2 w-full md:w-1/4 manual-product-name hidden text-sm" placeholder="Custom Product Name" />
+            <button onclick="removeProductRow(this)" class="text-red-500 bg-white border border-red-200 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-red-50 transition mt-auto md:mt-0">Remove</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <h5 class="font-bold text-brand-dark mb-2">Transportation & Discount</h5>
+          <input type="number" id="transportationDiscount" placeholder="Flat Discount / Freight (₹)" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-green">
+        </div>
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+          <h5 class="font-bold text-brand-dark mb-2">Terms & Conditions</h5>
+          <textarea id="terms" rows="2" class="w-full bg-gray-50 border border-gray-300 rounded-lg px-4 py-2 outline-none focus:border-brand-green resize-none"></textarea>
+        </div>
+      </div>
+
+      <div>
+        <button onclick="generateEstimate()" class="w-full bg-brand-green text-white px-6 py-4 rounded-xl font-bold text-lg shadow-md hover:opacity-90 transition-all transform hover:-translate-y-0.5">
+          Generate QuoteCraft Estimate
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="print-section" class="hidden my-8">
+    
+    <div class="a4-preview-container">
+      
+      <table class="no-break" style="width: 100%; border-bottom: 2px solid #509f2e; padding-bottom: 16px; margin-bottom: 24px;">
+        <tr>
+          <td style="vertical-align: bottom;">
+            <h1 style="font-size: 36px; font-family: 'Montserrat', sans-serif; font-weight: 800; margin: 0; color: #374151; line-height: 1;">Quote<span style="color: #509f2e;">Craft</span></h1>
+            <p style="font-size: 10px; color: #6b7280; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em; margin: 6px 0 0 0;">Har Hisab, Bilkul Sahi</p>
+          </td>
+          <td style="text-align: right; vertical-align: bottom;">
+            <h2 style="font-size: 30px; font-family: 'Montserrat', sans-serif; font-weight: 900; color: #374151; text-transform: uppercase; letter-spacing: 0.1em; margin: 0; line-height: 1;">Estimate</h2>
+            <p style="font-size: 12px; color: #6b7280; font-weight: 500; margin: 6px 0 0 0;">Official Document</p>
+          </td>
+        </tr>
+      </table>
+
+      <table class="no-break" style="width: 100%; margin-bottom: 24px; border-collapse: separate; border-spacing: 0;">
+        <tr>
+          <td style="width: 48%; vertical-align: top; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
+             <h5 style="font-size: 10px; font-weight: bold; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin: 0 0 10px 0;">Estimate For</h5>
+             <p id="printVendorName" style="font-weight: bold; font-size: 14px; color: #111827; margin: 0; text-transform: uppercase;"></p>
+             <p id="printVendorAddress" style="font-size: 12px; color: #4b5563; margin: 6px 0 0 0;"></p>
+             <p style="font-size: 12px; color: #4b5563; margin: 6px 0 0 0; font-weight: 600;">GSTIN: <span id="printVendorGST" style="color: #111827; text-transform: uppercase;"></span></p>
+          </td>
+          <td style="width: 4%;"></td>
+          <td style="width: 48%; vertical-align: top; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
+             <h5 style="font-size: 10px; font-weight: bold; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin: 0 0 10px 0;">Estimate Details</h5>
+             <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+               <tr><td style="color: #6b7280; padding: 3px 0;">Quote No:</td><td style="font-weight: bold; text-align: right; color: #111827; text-transform: uppercase;" id="printOrderNo"></td></tr>
+               <tr><td style="color: #6b7280; padding: 3px 0;">Date:</td><td style="font-weight: bold; text-align: right; color: #111827;" id="printOrderDate"></td></tr>
+               <tr><td style="color: #6b7280; padding: 3px 0;">Place of Supply:</td><td style="font-weight: bold; text-align: right; color: #111827; text-transform: uppercase;" id="printSupplyPlace"></td></tr>
+               <tr><td style="color: #6b7280; padding: 3px 0;">Valid Until:</td><td style="font-weight: bold; text-align: right; color: #111827;" id="printDueDate"></td></tr>
+             </table>
+          </td>
+        </tr>
+      </table>
+
+      <table class="invoice-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Item Description</th>
+            <th>Qty</th>
+            <th>MRP</th>
+            <th>Rate</th>
+            <th>Tax</th>
+            <th>Tax Amt</th>
+            <th>Subtotal</th>
+            <th>Discount</th>
+            <th style="background-color: #374151 !important; border-color: #374151 !important;">Total</th>
+          </tr>
+        </thead>
+        <tbody id="printProducts"></tbody>
+      </table>
+
+      <table class="no-break" style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+        <tr>
+          <td style="width: 58%; vertical-align: top;">
+            
+            <table style="width: 100%; margin-bottom: 16px; border-collapse: separate; border-spacing: 0;">
+              <tr>
+                <td style="width: 48%; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+                  <p style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: bold; margin: 0 0 6px 0; letter-spacing: 0.05em;">Total Tax Amount</p>
+                  <p style="font-size: 14px; font-weight: bold; color: #111827; margin: 0;">₹<span id="totalTax">0.00</span></p>
+                </td>
+                <td style="width: 4%;"></td>
+                <td style="width: 48%; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px;">
+                   <p style="font-size: 10px; color: #6b7280; text-transform: uppercase; font-weight: bold; margin: 0 0 6px 0; letter-spacing: 0.05em;">Total Material Weight</p>
+                   <p style="font-size: 14px; font-weight: bold; color: #111827; margin: 0;"><span id="totalMaterialWeight">0</span> KG</p>
+                </td>
+              </tr>
+            </table>
+
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px;">
+              <h5 style="font-size: 10px; font-weight: bold; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.1em; border-bottom: 1px solid #e5e7eb; padding-bottom: 6px; margin: 0 0 10px 0;">Terms & Conditions</h5>
+              <p id="printTerms" style="font-size: 10px; color: #4b5563; white-space: pre-line; margin: 0; font-weight: 500; line-height: 1.5;"></p>
+            </div>
+
+          </td>
+          
+          <td style="width: 4%;"></td>
+          
+          <td style="width: 38%; vertical-align: top;">
+            <div style="border: 1px solid #509f2e; border-radius: 8px; overflow: hidden; background: #f9fafb;">
+               <table style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                     <td style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; font-size: 12px; font-weight: 600; color: #4b5563;">Total Amount:</td>
+                     <td style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; font-size: 13px; font-weight: bold; color: #111827; text-align: right; white-space: nowrap;">₹<span id="totalBill">0.00</span></td>
+                  </tr>
+                  <tr>
+                     <td style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; font-size: 12px; font-weight: 600; color: #4b5563;">Discount / Freight:</td>
+                     <td style="padding: 14px 16px; border-bottom: 1px solid #e5e7eb; font-size: 13px; font-weight: bold; color: #ef4444; text-align: right; white-space: nowrap;">₹<span id="totalDiscount">0.00</span></td>
+                  </tr>
+                  <tr>
+                     <td style="padding: 18px 16px; background-color: #509f2e; color: white; font-size: 14px; font-weight: bold; text-transform: uppercase;">Grand Total:</td>
+                     <td style="padding: 18px 16px; background-color: #509f2e; color: white; font-size: 20px; font-weight: 900; text-align: right; white-space: nowrap;">₹<span id="grandTotal">0.00</span></td>
+                  </tr>
+               </table>
+            </div>
+          </td>
+        </tr>
+      </table>
+
+      <div class="no-break" style="margin-top: 24px; background: #f9fafb; padding: 16px; border-radius: 8px; border: 1px solid #e5e7eb;">
+        <p style="font-size: 12px; margin: 0; color: #1f2937;"><strong style="text-transform: uppercase; letter-spacing: 0.1em; color: #374151; margin-right: 8px;">Amount in Words:</strong> <span id="amountWords" style="font-style: italic; font-weight: bold;"></span></p>
+      </div>
+
+      <table class="no-break" style="width: 100%; margin-top: 48px; border-top: 1px solid #e5e7eb; padding-top: 16px;">
+        <tr>
+          <td style="vertical-align: bottom;">
+             <p style="font-size: 10px; color: #9ca3af; font-weight: bold; text-transform: uppercase; letter-spacing: 0.1em; margin: 0;">Har Hisab, Bilkul Sahi!</p>
+          </td>
+          <td style="vertical-align: bottom; text-align: center; width: 200px;">
+             <p style="font-size: 12px; font-weight: bold; color: #374151; margin: 0 0 40px 0;">For QuoteCraft</p>
+             <div style="width: 100%; height: 1px; background: #9ca3af;"></div>
+             <p style="font-size: 10px; color: #6b7280; margin: 8px 0 0 0; text-transform: uppercase; letter-spacing: 0.1em;">Authorized Signatory</p>
+          </td>
+        </tr>
+      </table>
+
+    </div> 
+    <div class="flex justify-center flex-wrap gap-4 mt-8 pb-10 no-print max-w-7xl mx-auto">
+      <button onclick="window.print()" class="bg-gray-900 hover:bg-black text-white px-8 py-3 rounded-lg font-bold shadow-md transition-colors flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+        Print Estimate
+      </button>
+      <button onclick="showInputSection()" class="bg-white border border-gray-300 text-gray-700 hover:text-brand-green px-8 py-3 rounded-lg font-bold shadow-sm hover:bg-gray-50 transition-colors">
+        Edit Details
+      </button>
+      <button onclick="resetForm()" class="bg-red-50 text-red-600 border border-red-200 px-6 py-3 rounded-lg font-bold hover:bg-red-100 transition-colors">
+        Create New
+      </button>
+    </div>
+
+  </div>
+
+  <script>
+    function addProductRow() {
+      const newRow = document.createElement('div');
+      newRow.className = 'product-row flex flex-wrap gap-3 items-start bg-gray-50 p-3 rounded-lg border border-gray-200';
+      newRow.innerHTML = `
+        <select class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-1/4 outline-none focus:border-brand-green text-sm font-medium" onchange="updateProductDetails(this); handleOtherOption(this);">
+          <option value="" selected disabled>Select Product Model</option>
+          <optgroup label="QUARTZ">
+            <option value="QUARTZ 16X18">QUARTZ 16X18</option>
+            <option value="QUARTZ 21X18">QUARTZ 21X18</option>
+            <option value="QUARTZ 24X18">QUARTZ 24X18</option>
+            <option value="QUARTZ 36X18">QUARTZ 36X18</option>
+            <option value="QUARTZ 28X19">QUARTZ 28X19</option>
+            <option value="QUARTZ 45X20">QUARTZ 45X20</option>
+            <option value="QUARTZ 30X20 MULTIFUNCTION">QUARTZ 30X20 MULTIFUNCTION</option>
+            <option value="QUARTZ 31X19">QUARTZ 31X19</option>
+            <option value="QUARTZ 37X18">QUARTZ 37X18</option>
+            <option value="QUARTZ 31X18 DOUBLE BOWL">QUARTZ 31X18 DOUBLE BOWL</option>
+            <option value="Other">Other</option>
+          </optgroup>
+          <optgroup label="HANDMADE">
+            <option value="HANDMADE 16X18">HANDMADE 16X18</option>
+            <option value="HANDMADE 21X18">HANDMADE 21X18</option>
+            <option value="HANDMADE 24X18">HANDMADE 24X18</option>
+            <option value="HANDMADE 32X18">HANDMADE 32X18</option>
+            <option value="HANDMADE 37X18">HANDMADE 37X18</option>
+            <option value="HANDMADE 30X18">HANDMADE 30X18</option>
+            <option value="HANDMADE 16X18 COLOR">HANDMADE 16X18 COLOR</option>
+            <option value="HANDMADE 21X18 COLOR">HANDMADE 21X18 COLOR</option>
+            <option value="HANDMADE 24X18 COLOR">HANDMADE 24X18 COLOR</option>
+            <option value="HANDMADE 16X18 RC MATT">HANDMADE 16X18 RC MATT</option>
+            <option value="HANDMADE 21X18 RC MATT">HANDMADE 21X18 RC MATT</option>
+            <option value="HANDMADE 24X18 RC MATT">HANDMADE 24X18 RC MATT</option>
+            <option value="HANDMADE 20X17 RC MATT">HANDMADE 20X17 RC MATT</option>
+            <option value="HANDMADE 22X18">HANDMADE 22X18</option>
+            <option value="HANDMADE 24X18 TAP HOLE BLACK">HANDMADE 24X18 TAP HOLE BLACK</option>
+            <option value="HANDMADE 32X18 TAP HOLE">HANDMADE 32X18 TAP HOLE</option>
+            <option value="HANDMADE 37X18 COLOR">HANDMADE 37X18 COLOR</option>
+            <option value="HANDMADE 24X18 MINI MULTIFUNCTION">HANDMADE 24X18 MINI MULTIFUNCTION</option>
+            <option value="Other">Other</option>
+          </optgroup>
+          <optgroup label="MULTIFUNCTION">
+            <option value="MULTIFUNCTION SINK 30X18">MULTIFUNCTION SINK 30X18</option>
+            <option value="DIGITAL MULTIFUNCTION 30X18">DIGITAL MULTIFUNCTION 30X18</option>
+            <option value="QUARTZ MULTIFUNCTION">QUARTZ MULTIFUNCTION</option>
+            <option value="Other">Other</option>
+          </optgroup>
+          <optgroup label="STEEL SINK 0.5MM">
+            <option value="SS-12X12X6-0.5MM-WITH COATING-20PC/BOX">SS-12X12X6-0.5MM-WITH COATING-20PC/BOX</option>
+            <option value="SS-12X15X6-0.5MM-WITH COATING-10PC/BOX">SS-12X15X6-0.5MM-WITH COATING-10PC/BOX</option>
+            <option value="SS-14X16X6-0.5MM-WITH COATING-10PC/BOX">SS-14X16X6-0.5MM-WITH COATING-10PC/BOX</option>
+            <option value="SS-16X16X6-0.5MM-WITH COATING-10PC/BOX">SS-16X16X6-0.5MM-WITH COATING-10PC/BOX</option>
+            <option value="SS-12X12X6-0.5MM-WCWR-20PC/BOX">SS-12X12X6-0.5MM-WCWR-20PC/BOX</option>
+            <option value="SS-12X15X6-0.5MM-WCWR-10PC/BOX">SS-12X15X6-0.5MM-WCWR-10PC/BOX</option>
+            <option value="SS-14X16X6-0.5MM-WCWR-10PC/BOX">SS-14X16X6-0.5MM-WCWR-10PC/BOX</option>
+            <option value="SS-16X16X6-0.5MM-WCWR-10PC/BOX">SS-16X16X6-0.5MM-WCWR-10PC/BOX</option>
+          </optgroup>
+          <optgroup label="STEEL SINK 0.6MM">
+            <option value="SS-14X16X7-0.6MM-10PC/BOX">SS-14X16X7-0.6MM-10PC/BOX</option>
+            <option value="SS-16X18X6-0.6MM-10PC/BOX">SS-16X18X6-0.6MM-10PC/BOX</option>
+            <option value="SS-16X18X7-0.6MM-7PC/BOX">SS-16X18X7-0.6MM-7PC/BOX</option>
+            <option value="SS-16X16X7-0.6MM-7PC/BOX">SS-16X16X7-0.6MM-7PC/BOX</option>
+            <option value="SS-18X18X7-0.6MM-7PC/BOX">SS-18X18X7-0.6MM-7PC/BOX</option>
+            <option value="SS-20X17X7-0.6MM-7PC/BOX">SS-20X17X7-0.6MM-7PC/BOX</option>
+            <option value="SS-21X18X7-0.6MM-7PC/BOX">SS-21X18X7-0.6MM-7PC/BOX</option>
+            <option value="SS-22X18X7-0.6MM-7PC/BOX">SS-22X18X7-0.6MM-7PC/BOX</option>
+            <option value="SS-24X18X7-0.6MM-7PC/BOX">SS-24X18X7-0.6MM-7PC/BOX</option>
+            <option value="SS-16X18X8-0.6MM-5PC/BOX">SS-16X18X8-0.6MM-5PC/BOX</option>
+            <option value="SS-20X17X8-0.6MM-5PC/BOX">SS-20X17X8-0.6MM-5PC/BOX</option>
+            <option value="SS-21X18X8-0.6MM-5PC/BOX">SS-21X18X8-0.6MM-5PC/BOX</option>
+            <option value="SS-22X18X8-0.6MM-5PC/BOX">SS-22X18X8-0.6MM-5PC/BOX</option>
+            <option value="SS-24X18X8-0.6MM-5PC/BOX">SS-24X18X8-0.6MM-5PC/BOX</option>
+            <option value="SS-24X18X9-0.6MM-5PC/BOX">SS-24X18X9-0.6MM-5PC/BOX</option>
+          </optgroup>
+          <optgroup label="STEEL SINK 0.8MM">
+            <option value="SS-16X18X8-0.8MM-5PC/BOX">SS-16X18X8-0.8MM-5PC/BOX</option>
+            <option value="SS-20X17X8-0.8MM-5PC/BOX">SS-20X17X8-0.8MM-5PC/BOX</option>
+            <option value="SS-21X18X8-0.8MM-5PC/BOX">SS-21X18X8-0.8MM-5PC/BOX</option>
+            <option value="SS-22X18X8-0.8MM-5PC/BOX">SS-22X18X8-0.8MM-5PC/BOX</option>
+            <option value="SS-24X18X8-0.8MM-5PC/BOX">SS-24X18X8-0.8MM-5PC/BOX</option>
+            <option value="SS-24X18X9-0.8MM-5PC/BOX">SS-24X18X9-0.8MM-5PC/BOX</option>
+            <option value="SS-24X18X10-0.8MM-1PC/5PC MASTER">SS-24X18X10-0.8MM-1PC/5PC MASTER</option>
+          </optgroup>
+          <optgroup label="STEEL SINK 1.0MM">
+            <option value="SS-16X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-16X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+            <option value="SS-20X17X8-1.0MM-1PC/5PC MASTER CARTOON">SS-20X17X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+            <option value="SS-21X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-21X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+            <option value="SS-22X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-22X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+            <option value="SS-24X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-24X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+            <option value="SS-24X18X9-1.0MM-1PC/5PC MASTER CARTOON">SS-24X18X9-1.0MM-1PC/5PC MASTER CARTOON</option>
+          </optgroup>
+        </select>
+        <input type="number" placeholder="Qty" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-20 outline-none focus:border-brand-green text-sm">
+        <input type="number" placeholder="MRP" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-24 outline-none focus:border-brand-green text-sm">
+        <input type="number" placeholder="Bill Rate" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-24 outline-none focus:border-brand-green text-sm">
+        
+        <input type="number" placeholder="Wt/pc (KG)" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-24 outline-none focus:border-brand-green text-sm weight-input">
+
+        <select class="border border-gray-300 bg-white rounded-lg px-2 py-2 w-full md:w-28 outline-none focus:border-brand-green text-sm font-medium gst-mode">
+          <option value="included" selected>GST Incl.</option>
+          <option value="extra">GST Extra</option>
+        </select>
+
+        <input type="text" class="border border-brand-green bg-white rounded-lg px-3 py-2 w-full md:w-1/4 manual-product-name hidden text-sm" placeholder="Custom Product Name" />
+        <button onclick="removeProductRow(this)" class="text-red-500 bg-white border border-red-200 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-red-50 transition mt-auto md:mt-0">Remove</button>
+      </div>
+    `;
+      document.getElementById('productRows').appendChild(newRow);
+    }
+
+    function removeProductRow(button) {
+      button.parentElement.remove();
+    }
+
+    function updateProductDetails(selectElement) {
+      const itemName = selectElement.value;
+      const inputs = selectElement.parentElement.querySelectorAll('input');
+      const mrpInput = inputs[1];
+      const billInput = inputs[2];
+
+      const mrpMap = {
+        "QUARTZ 16X18": 1000,
+        "QUARTZ 21X18": 1200,
+        "QUARTZ 24X18": 1500,
+        "HANDMADE 16X18": 800,
+        "HANDMADE 21X18": 900,
+        "HANDMADE 24X18": 1100,
+        "MULTIFUNCTION SINK 30X18": 2000,
+        "DIGITAL MULTIFUNCTION 30X18": 2500,
+        "QUARTZ MULTIFUNCTION": 3000
+      };
+
+      if (mrpMap[itemName]) {
+        mrpInput.value = mrpMap[itemName];
+        billInput.value = (mrpMap[itemName] * 0.9).toFixed(2);
+      } else {
+        mrpInput.value = '';
+        billInput.value = '';
+      }
+    }
+
+    function handleOtherOption(selectElement) {
+      const row = selectElement.parentElement;
+      const manualInput = row.querySelector('.manual-product-name');
+
+      if (selectElement.value === 'Other') {
+        manualInput.classList.remove('hidden');
+      } else {
+        manualInput.classList.add('hidden');
+      }
+    }
+
+    function generateEstimate() {
+      document.getElementById('printVendorName').textContent = document.getElementById('vendorName').value;
+      document.getElementById('printVendorAddress').textContent = document.getElementById('vendorAddress').value;
+      document.getElementById('printVendorGST').textContent = document.getElementById('vendorGST').value;
+      document.getElementById('printOrderNo').textContent = document.getElementById('orderNo').value;
+      document.getElementById('printOrderDate').textContent = document.getElementById('orderDate').value;
+      document.getElementById('printSupplyPlace').textContent = document.getElementById('supplyPlace').value;
+      document.getElementById('printDueDate').textContent = document.getElementById('dueDate').value;
+
+      const transportationDiscount = parseFloat(document.getElementById('transportationDiscount').value) || 0;
+      let totalTax = 0, totalBill = 0, totalDiscount = 0, grandTotal = 0, totalMaterialWeight = 0;
+      let productsHTML = '';
+
+      document.querySelectorAll('.product-row').forEach((row, index) => {
+        const select = row.querySelector('select');
+        const itemName = select.value === 'Other' ? row.querySelector('.manual-product-name').value : select.value;
+        const inputs = row.querySelectorAll('input');
+        
+        const qty = parseFloat(inputs[0].value) || 0;
+        let mrp = parseFloat(inputs[1].value) || 0;
+        const bill = parseFloat(inputs[2].value) || 0;
+        
+        const weightInput = row.querySelector('.weight-input');
+        const gstMode = row.querySelector('.gst-mode').value;
+
+        const tax = bill * 0.18;
+        
+        if (gstMode === 'extra') {
+            mrp = mrp + tax; 
+        }
+
+        const totalTaxAmount = qty * tax;
+        const totalBillAmount = (bill + tax) * qty;
+        const total = qty * mrp;
+        const discount = total - totalBillAmount;
+
+        let weightPerPiece = 0;
+        if (weightInput && weightInput.value !== "") {
+            weightPerPiece = parseFloat(weightInput.value);
+        } else {
+            const lowerItemName = itemName.toLowerCase();
+            let area = 0;
+            const sizeMatch = lowerItemName.match(/(\d+)\s*[x\*]\s*(\d+)/);
+            if (sizeMatch) {
+                area = parseInt(sizeMatch[1]) * parseInt(sizeMatch[2]);
+            }
+
+            if (lowerItemName.includes('quartz')) {
+                if (area <= 300) weightPerPiece = 10;        
+                else if (area <= 400) weightPerPiece = 11;   
+                else if (area <= 450) weightPerPiece = 12;   
+                else if (area <= 550) weightPerPiece = 16;   
+                else if (area <= 650) weightPerPiece = 20;   
+                else if (area <= 750) weightPerPiece = 25;   
+                else weightPerPiece = 30;                    
+
+            } else if (lowerItemName.includes('handmade')) {
+                if (area <= 300) weightPerPiece = 6;         
+                else if (area <= 400) weightPerPiece = 7.5;  
+                else if (area <= 450) weightPerPiece = 9;    
+                else if (area <= 550) weightPerPiece = 11;   
+                else if (area <= 650) weightPerPiece = 13;   
+                else weightPerPiece = 15;                    
+
+            } else if (lowerItemName.includes('ss-') || lowerItemName.includes('steel')) {
+                if (area <= 150) weightPerPiece = 3;         
+                else if (area <= 250) weightPerPiece = 3.5;  
+                else if (area <= 300) weightPerPiece = 4;    
+                else if (area <= 400) weightPerPiece = 4.5;  
+                else if (area <= 450) weightPerPiece = 5;    
+                else weightPerPiece = 5.5;                   
+
+            } else if (lowerItemName.includes('multifunction')) {
+                if (area <= 450) weightPerPiece = 15;        
+                else if (area <= 600) weightPerPiece = 20;   
+                else weightPerPiece = 25;                    
+                
+            } else {
+                weightPerPiece = 5; 
+            }
+        }
+
+        totalMaterialWeight += qty * weightPerPiece;
+        totalTax += totalTaxAmount;
+        totalBill += totalBillAmount;
+        totalDiscount += discount;
+        grandTotal += total;
+
+        productsHTML += `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${itemName}</td>
+            <td>${qty}</td>
+            <td>₹${mrp.toFixed(2)}</td>
+            <td>₹${bill.toFixed(2)}</td>
+            <td style="color:#6b7280;">18%</td>
+            <td style="color:#6b7280;">₹${totalTaxAmount.toFixed(2)}</td>
+            <td>₹${totalBillAmount.toFixed(2)}</td>
+            <td style="color:#ef4444;">₹${discount.toFixed(2)}</td>
+            <td style="font-weight:bold; color:#111827;">₹${total.toFixed(2)}</td>
+          </tr>`;
+      });
+
+      totalDiscount += transportationDiscount;
+      grandTotal = totalBill + totalDiscount;
+
+      document.getElementById('totalTax').textContent = totalTax.toFixed(2);
+      document.getElementById('totalBill').textContent = totalBill.toFixed(2);
+      document.getElementById('totalDiscount').textContent = totalDiscount.toFixed(2);
+      document.getElementById('grandTotal').textContent = grandTotal.toFixed(2);
+      document.getElementById('amountWords').textContent = `Rupees ${grandTotal.toFixed(2)} Only`;
+      document.getElementById('totalMaterialWeight').textContent = totalMaterialWeight.toFixed(2);
+      document.getElementById('printTerms').textContent = document.getElementById('terms').value;
+      document.getElementById('printProducts').innerHTML = productsHTML;
+
+      document.getElementById('input-section').classList.add('hidden');
+      document.getElementById('print-section').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+
+      // ---- GOOGLE SHEET DATA SENDING LOGIC ----
+      let productNamesForSheet = "";
+      document.querySelectorAll('.product-row').forEach(row => {
+          const select = row.querySelector('select');
+          let sel = select.value === 'Other' ? row.querySelector('.manual-product-name').value : select.value;
+          let q = row.querySelectorAll('input')[0].value;
+          if(sel && q) productNamesForSheet += `${q} x ${sel} | `;
+      });
+
+      const estimateData = {
+          vendorName: document.getElementById('vendorName').value || "No Name",
+          vendorAddress: document.getElementById('vendorAddress').value || "NA",
+          vendorGST: document.getElementById('vendorGST').value || "NA",
+          orderNo: document.getElementById('orderNo').value || "NA",
+          orderDate: document.getElementById('orderDate').value || "NA",
+          supplyPlace: document.getElementById('supplyPlace').value || "NA",
+          totalTax: totalTax.toFixed(2),
+          totalDiscount: totalDiscount.toFixed(2),
+          grandTotal: grandTotal.toFixed(2),
+          products: productNamesForSheet
+      };
+
+      const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxTKJphqAEC5bsZk8W_C308pi7LeEnX2ILj_4hjjWlMobU31AG8MAV6zS-vd57-z1eI/exec";
+
+      fetch(GOOGLE_SCRIPT_URL, {
+          method: "POST",
+          body: JSON.stringify(estimateData),
+          mode: 'no-cors' 
+      }).then(() => console.log("Data Sent to Google Sheet"))
+        .catch(err => console.error("Error:", err));
+      // ------------------------------------------
+    }
+
+    function showInputSection() {
+      document.getElementById('print-section').classList.add('hidden');
+      document.getElementById('input-section').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetForm() {
+      document.getElementById('print-section').classList.add('hidden');
+      document.getElementById('input-section').classList.remove('hidden');
+      document.querySelectorAll('input').forEach(input => input.value = '');
+      document.getElementById('terms').value = '';
+      document.getElementById('productRows').innerHTML = `
+        <div class="product-row flex flex-wrap gap-3 items-start bg-gray-50 p-3 rounded-lg border border-gray-200">
+          <select class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-1/4 outline-none focus:border-brand-green text-sm font-medium" onchange="updateProductDetails(this); handleOtherOption(this);">
+            <option value="" selected disabled>Select Product Model</option>
+            <optgroup label="QUARTZ">
+              <option value="QUARTZ 16X18">QUARTZ 16X18</option>
+              <option value="QUARTZ 21X18">QUARTZ 21X18</option>
+              <option value="QUARTZ 24X18">QUARTZ 24X18</option>
+              <option value="QUARTZ 36X18">QUARTZ 36X18</option>
+              <option value="QUARTZ 28X19">QUARTZ 28X19</option>
+              <option value="QUARTZ 45X20">QUARTZ 45X20</option>
+              <option value="QUARTZ 30X20 MULTIFUNCTION">QUARTZ 30X20 MULTIFUNCTION</option>
+              <option value="QUARTZ 31X19">QUARTZ 31X19</option>
+              <option value="QUARTZ 37X18">QUARTZ 37X18</option>
+              <option value="QUARTZ 31X18 DOUBLE BOWL">QUARTZ 31X18 DOUBLE BOWL</option>
+              <option value="Other">Other</option>
+            </optgroup>
+            <optgroup label="HANDMADE">
+              <option value="HANDMADE 16X18">HANDMADE 16X18</option>
+              <option value="HANDMADE 21X18">HANDMADE 21X18</option>
+              <option value="HANDMADE 24X18">HANDMADE 24X18</option>
+              <option value="HANDMADE 32X18">HANDMADE 32X18</option>
+              <option value="HANDMADE 37X18">HANDMADE 37X18</option>
+              <option value="HANDMADE 30X18">HANDMADE 30X18</option>
+              <option value="HANDMADE 16X18 COLOR">HANDMADE 16X18 COLOR</option>
+              <option value="HANDMADE 21X18 COLOR">HANDMADE 21X18 COLOR</option>
+              <option value="HANDMADE 24X18 COLOR">HANDMADE 24X18 COLOR</option>
+              <option value="HANDMADE 16X18 RC MATT">HANDMADE 16X18 RC MATT</option>
+              <option value="HANDMADE 21X18 RC MATT">HANDMADE 21X18 RC MATT</option>
+              <option value="HANDMADE 24X18 RC MATT">HANDMADE 24X18 RC MATT</option>
+              <option value="HANDMADE 20X17 RC MATT">HANDMADE 20X17 RC MATT</option>
+              <option value="HANDMADE 22X18">HANDMADE 22X18</option>
+              <option value="HANDMADE 24X18 TAP HOLE BLACK">HANDMADE 24X18 TAP HOLE BLACK</option>
+              <option value="HANDMADE 32X18 TAP HOLE">HANDMADE 32X18 TAP HOLE</option>
+              <option value="HANDMADE 37X18 COLOR">HANDMADE 37X18 COLOR</option>
+              <option value="HANDMADE 24X18 MINI MULTIFUNCTION">HANDMADE 24X18 MINI MULTIFUNCTION</option>
+              <option value="Other">Other</option>
+            </optgroup>
+            <optgroup label="MULTIFUNCTION">
+              <option value="MULTIFUNCTION SINK 30X18">MULTIFUNCTION SINK 30X18</option>
+              <option value="DIGITAL MULTIFUNCTION 30X18">DIGITAL MULTIFUNCTION 30X18</option>
+              <option value="QUARTZ MULTIFUNCTION">QUARTZ MULTIFUNCTION</option>
+              <option value="Other">Other</option>
+            </optgroup>
+            <optgroup label="STEEL SINK 0.5MM">
+              <option value="SS-12X12X6-0.5MM-WITH COATING-20PC/BOX">SS-12X12X6-0.5MM-WITH COATING-20PC/BOX</option>
+              <option value="SS-12X15X6-0.5MM-WITH COATING-10PC/BOX">SS-12X15X6-0.5MM-WITH COATING-10PC/BOX</option>
+              <option value="SS-14X16X6-0.5MM-WITH COATING-10PC/BOX">SS-14X16X6-0.5MM-WITH COATING-10PC/BOX</option>
+              <option value="SS-16X16X6-0.5MM-WITH COATING-10PC/BOX">SS-16X16X6-0.5MM-WITH COATING-10PC/BOX</option>
+              <option value="SS-12X12X6-0.5MM-WCWR-20PC/BOX">SS-12X12X6-0.5MM-WCWR-20PC/BOX</option>
+              <option value="SS-12X15X6-0.5MM-WCWR-10PC/BOX">SS-12X15X6-0.5MM-WCWR-10PC/BOX</option>
+              <option value="SS-14X16X6-0.5MM-WCWR-10PC/BOX">SS-14X16X6-0.5MM-WCWR-10PC/BOX</option>
+              <option value="SS-16X16X6-0.5MM-WCWR-10PC/BOX">SS-16X16X6-0.5MM-WCWR-10PC/BOX</option>
+            </optgroup>
+            <optgroup label="STEEL SINK 0.6MM">
+              <option value="SS-14X16X7-0.6MM-10PC/BOX">SS-14X16X7-0.6MM-10PC/BOX</option>
+              <option value="SS-16X18X6-0.6MM-10PC/BOX">SS-16X18X6-0.6MM-10PC/BOX</option>
+              <option value="SS-16X18X7-0.6MM-7PC/BOX">SS-16X18X7-0.6MM-7PC/BOX</option>
+              <option value="SS-16X16X7-0.6MM-7PC/BOX">SS-16X16X7-0.6MM-7PC/BOX</option>
+              <option value="SS-18X18X7-0.6MM-7PC/BOX">SS-18X18X7-0.6MM-7PC/BOX</option>
+              <option value="SS-20X17X7-0.6MM-7PC/BOX">SS-20X17X7-0.6MM-7PC/BOX</option>
+              <option value="SS-21X18X7-0.6MM-7PC/BOX">SS-21X18X7-0.6MM-7PC/BOX</option>
+              <option value="SS-22X18X7-0.6MM-7PC/BOX">SS-22X18X7-0.6MM-7PC/BOX</option>
+              <option value="SS-24X18X7-0.6MM-7PC/BOX">SS-24X18X7-0.6MM-7PC/BOX</option>
+              <option value="SS-16X18X8-0.6MM-5PC/BOX">SS-16X18X8-0.6MM-5PC/BOX</option>
+              <option value="SS-20X17X8-0.6MM-5PC/BOX">SS-20X17X8-0.6MM-5PC/BOX</option>
+              <option value="SS-21X18X8-0.6MM-5PC/BOX">SS-21X18X8-0.6MM-5PC/BOX</option>
+              <option value="SS-22X18X8-0.6MM-5PC/BOX">SS-22X18X8-0.6MM-5PC/BOX</option>
+              <option value="SS-24X18X8-0.6MM-5PC/BOX">SS-24X18X8-0.6MM-5PC/BOX</option>
+              <option value="SS-24X18X9-0.6MM-5PC/BOX">SS-24X18X9-0.6MM-5PC/BOX</option>
+            </optgroup>
+            <optgroup label="STEEL SINK 0.8MM">
+              <option value="SS-16X18X8-0.8MM-5PC/BOX">SS-16X18X8-0.8MM-5PC/BOX</option>
+              <option value="SS-20X17X8-0.8MM-5PC/BOX">SS-20X17X8-0.8MM-5PC/BOX</option>
+              <option value="SS-21X18X8-0.8MM-5PC/BOX">SS-21X18X8-0.8MM-5PC/BOX</option>
+              <option value="SS-22X18X8-0.8MM-5PC/BOX">SS-22X18X8-0.8MM-5PC/BOX</option>
+              <option value="SS-24X18X8-0.8MM-5PC/BOX">SS-24X18X8-0.8MM-5PC/BOX</option>
+              <option value="SS-24X18X9-0.8MM-5PC/BOX">SS-24X18X9-0.8MM-5PC/BOX</option>
+              <option value="SS-24X18X10-0.8MM-1PC/5PC MASTER">SS-24X18X10-0.8MM-1PC/5PC MASTER</option>
+            </optgroup>
+            <optgroup label="STEEL SINK 1.0MM">
+              <option value="SS-16X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-16X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+              <option value="SS-20X17X8-1.0MM-1PC/5PC MASTER CARTOON">SS-20X17X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+              <option value="SS-21X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-21X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+              <option value="SS-22X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-22X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+              <option value="SS-24X18X8-1.0MM-1PC/5PC MASTER CARTOON">SS-24X18X8-1.0MM-1PC/5PC MASTER CARTOON</option>
+              <option value="SS-24X18X9-1.0MM-1PC/5PC MASTER CARTOON">SS-24X18X9-1.0MM-1PC/5PC MASTER CARTOON</option>
+            </optgroup>
+          </select>
+          <input type="number" placeholder="Qty" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-20 outline-none focus:border-brand-green text-sm">
+          <input type="number" placeholder="MRP" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-24 outline-none focus:border-brand-green text-sm">
+          <input type="number" placeholder="Bill Rate" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-24 outline-none focus:border-brand-green text-sm">
+          
+          <input type="number" placeholder="Wt/pc (KG)" class="border border-gray-300 bg-white rounded-lg px-3 py-2 w-full md:w-24 outline-none focus:border-brand-green text-sm weight-input">
+
+          <select class="border border-gray-300 bg-white rounded-lg px-2 py-2 w-full md:w-28 outline-none focus:border-brand-green text-sm font-medium gst-mode">
+            <option value="included" selected>GST Incl.</option>
+            <option value="extra">GST Extra</option>
+          </select>
+
+          <input type="text" class="border border-brand-green bg-white rounded-lg px-3 py-2 w-full md:w-1/4 manual-product-name hidden text-sm" placeholder="Custom Product Name" />
+          <button onclick="removeProductRow(this)" class="text-red-500 bg-white border border-red-200 px-3 py-2 rounded-lg text-sm font-semibold hover:bg-red-50 transition mt-auto md:mt-0">Remove</button>
+        </div>`;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  </script>
+</body>
+</html>
